@@ -1,7 +1,7 @@
 
 FROM php:5.6-apache
 Maintainer Nur Rony <pro.nmrony@gmail.com>
-LABEL Name=apache-php5 Version=1.0.0
+LABEL Name=apache-php5
 
 RUN apt-get update && \
     apt-get install -y libfreetype6-dev \
