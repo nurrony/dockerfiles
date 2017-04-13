@@ -1,7 +1,7 @@
 
 FROM php:5.6-apache
 Maintainer Nur Rony <pro.nmrony@gmail.com>
-LABEL Name=alpine-apache-php5 Version=1.0.0
+LABEL Name=apache-php5 Version=1.0.0
 
 RUN apt-get update && \
     apt-get install -y libfreetype6-dev \
@@ -25,4 +25,4 @@ RUN apt-get update && \
     docker-php-ext-install iconv && \
     # enabling necessary modules
     a2enmod rewrite headers ssl proxy_http proxy_ajp proxy_html proxy_connect deflate proxy_balancer xml2enc && \
-    cd /tmp && curl -sS https://getcomposer.org/installer | php && mv composer.phar /usr/local/bin/composer && \
+    cd /tmp && curl -sS https://getcomposer.org/installer | php && mv composer.phar /usr/local/bin/composer
