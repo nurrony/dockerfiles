@@ -6,7 +6,7 @@
 
 FROM alpine:edge
 
-MAINTAINER Nur Rony
+LABEL maintainer="Nur Rony<pro.nmrony@gmail.com>"
 
 # Optional Configuration Parameter during build
 ARG SYSTEM_TZ
