@@ -1,6 +1,6 @@
 
 FROM php:5.6-apache
-Maintainer Nur Rony <pro.nmrony@gmail.com>
+LABEL Maintainer Nur Rony <pro.nmrony@gmail.com>
 LABEL Name=apache-php5
 
 RUN apt-get update && \
