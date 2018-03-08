@@ -1,4 +1,4 @@
-Apache with PHP 5.6.33
+Apache with PHP 5.6.34
 -----------------------
 This image have all necessary and frequently used Apache modules installed and enabled by default
 
