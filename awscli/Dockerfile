@@ -30,4 +30,8 @@ RUN pip install --upgrade awscli awsebcli \
 
 COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 
+WORKDIR /app
+
 ENTRYPOINT ["docker-entrypoint.sh"]
+
+CMD ["aws"]
