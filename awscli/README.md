@@ -1,10 +1,10 @@
 AWS CLI with all Standalone CLI
-================================
+--------------------------------
 This Docker image includes AWS CLI and AWS Elastic Beanstalk CLI. It will bundle all available standalone AWS
 CLI. If no command is provided then it will fallback to default AWS CLI
 
 Available Commands
-==================
+===================
 - aws
 - eb
 
@@ -46,4 +46,4 @@ docker run --rm --interactive --tty --name eb-cli \
   nmrony/awscli eb [init | create | ...]
 ```
 
-**There is a drop in command file `aws-commands.sh`. Copy and paste the contents in your shell configuration file i.e: ~/.bashrc, ~/.zshrc etc
+**There is a drop in command file `aws-commands.sh`. Copy and paste the contents in your shell configuration file i.e: ~/.bashrc, ~/.zshrc etc**
