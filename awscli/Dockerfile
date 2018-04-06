@@ -19,15 +19,17 @@ RUN apk --no-cache add 	ca-certificates \
 	if [[ ! -e /usr/bin/python ]]; then ln -sf /usr/bin/python3 /usr/bin/python; fi && \
 	rm -r /root/.cache && \
   pip install --upgrade awscli awsebcli \
-	&& mkdir -p /root/.aws /app \
+	&& mkdir -p /.aws /app \
 	&& { \
 	echo '[default]'; \
 	echo 'output = json'; \
 	echo 'region = $AWS_DEFAULT_REGION'; \
 	echo 'aws_access_key_id = $AMAZON_ACCESS_KEY_ID'; \
 	echo 'aws_secret_access_key = $AMAZON_SECRET_ACCESS_KEY'; \
-	} > /root/.aws/config
+	} > /.aws/config
 
 COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+
+WORKDIR /app
 
 ENTRYPOINT ["docker-entrypoint.sh"]
