@@ -16,5 +16,5 @@ eb() {
     -v "$(pwd):/app" \
     -v "${HOME}/.aws:/root/.aws" \
     -v "${HOME}/.ssh:/root/.ssh" \
-    nmrony/awscli "$@"
+    nmrony/awscli eb "$@"
 }
