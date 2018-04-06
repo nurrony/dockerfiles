@@ -6,6 +6,7 @@
 
 FROM alpine:latest
 LABEL maintainer "Nur Rony <pro.nmrony@gmail.com>"
+
 RUN apk --no-cache add 	ca-certificates \
 	groff \
 	tini \
@@ -16,10 +17,9 @@ RUN apk --no-cache add 	ca-certificates \
 	pip3 install --upgrade pip setuptools && \
 	if [ ! -e /usr/bin/pip ]; then ln -s pip3 /usr/bin/pip ; fi && \
 	if [[ ! -e /usr/bin/python ]]; then ln -sf /usr/bin/python3 /usr/bin/python; fi && \
-	rm -r /root/.cache
-
-RUN pip install --upgrade awscli awsebcli \
-	&& mkdir -p /root/.aws \
+	rm -r /root/.cache && \
+  pip install --upgrade awscli awsebcli \
+	&& mkdir -p /root/.aws /app \
 	&& { \
 	echo '[default]'; \
 	echo 'output = json'; \
@@ -30,8 +30,4 @@ RUN pip install --upgrade awscli awsebcli \
 
 COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 
-WORKDIR /app
-
 ENTRYPOINT ["docker-entrypoint.sh"]
-
-CMD ["aws"]
