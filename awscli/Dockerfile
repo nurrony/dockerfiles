@@ -9,6 +9,7 @@ LABEL maintainer "Nur Rony <pro.nmrony@gmail.com>"
 
 RUN apk --no-cache add 	ca-certificates \
 	groff \
+	git \
 	tini \
 	less \
 	python3 && \
