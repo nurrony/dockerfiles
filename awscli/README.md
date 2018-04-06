@@ -24,7 +24,7 @@ To use the AWS CLI run docker container as follows
 ```sh
 docker run --rm --interactive \
   --tty --name aws-cli \
-  --volume $HOME/.aws:/root/.aws \
+  --volume $HOME/.aws:/.aws \
   nmrony/awscli [configure | iam | s3 | ...]
 ```
 
@@ -32,7 +32,7 @@ docker run --rm --interactive \
 
 ```sh
 docker run --rm --interactive --tty --name eb-cli \
-  --volume $HOME/.aws:/root/.aws \
+  --volume $HOME/.aws:/.aws \
   --volume $PWD:/app \
   nmrony/awscli eb [init | create | ...]
 ```
@@ -41,7 +41,7 @@ By default, `eb` command runs as `root` inside the container. This can lead to p
 
 ```sh
 docker run --rm --interactive --tty --name eb-cli \
-  --volume $HOME/.aws:/root/.aws \
+  --volume $HOME/.aws:/.aws \
   --volume $PWD:/app \
   --user $(id -u):$(id -g) \
   nmrony/awscli eb [init | create | ...]

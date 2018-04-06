@@ -1,20 +1,23 @@
 # Copy and paste these functions in your ~/.bashrc or ~/.zshrc
 
-aws() {
-  docker run --rm \
-  -it \
-  --name aws-cli \
-  --volume $HOME/.aws:/root/.aws \
-  --user $(id -u):$(id -g) \
-  nmrony/awscli "$@"
+aws(){
+  docker run --rm --interactive \
+    --tty \
+    --name aws-cli \
+    --volume $HOME/.aws:/.aws \
+    --log-driver none \
+    --user $(id -u):$(id -g) \
+    --volume $PWD:/app \
+    nmrony/awscli "$@"
 }
 
-eb() {
-  docker run --rm \
-    -t $(tty &>/dev/null && echo "-i") \
+eb(){
+  docker run --rm --interactive \
+    --tty \
+    --name aws-eb-cli \
+    --volume $HOME/.aws:/.aws \
+    --log-driver none \
     --user $(id -u):$(id -g) \
-    -v "$(pwd):/app" \
-    -v "${HOME}/.aws:/root/.aws" \
-    -v "${HOME}/.ssh:/root/.ssh" \
+    --volume $PWD:/app \
     nmrony/awscli eb "$@"
 }
