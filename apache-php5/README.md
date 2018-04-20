@@ -10,7 +10,7 @@ docker run -dit --name my-awesome-php-app -v /path/to/public_html:/var/www/html 
 To update PHP setting please mount your **`.ini`** files as follows
 
 ```sh
-docker run --rm --name php-test -dit -p 8000:80 -v ${PWD}/uploads.ini:/usr/local/etc/php/conf.d/uploads.ini -v $PWD/app:/var/www/html nmrony/apache-php5
+docker run --rm --name php-test -dit -p 8000:80 -v ${PWD} /uploads.ini:/usr/local/etc/php/conf.d/uploads.ini -v $PWD/app:/var/www/html nmrony/apache-php5
 ```
 
 Modules Enabled by default in Apache:
@@ -26,6 +26,7 @@ Extensions enabled in PHP
 =========================
 - MySQL
 - MySQLi
+- SOAP
 - mbstring
 - gd
 - pdo
