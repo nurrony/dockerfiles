@@ -24,6 +24,13 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/* && \
     # Hide PHP version header
     { echo 'expose_php = Off'; } > /usr/local/etc/php/conf.d/expose_php.ini && \
+    # Hide Apache version
+    { \
+      echo ''; \
+      echo '# Hide Apache version'; \
+      echo 'ServerTokens ProductOnly'; \
+      echo 'ServerSignature Off'; \
+    } >> /etc/apache2/apache2.conf && \
     # enable necessary extensions
     docker-php-ext-configure gd --with-freetype-dir=/usr/include/ --with-jpeg-dir=/usr/include/ && \
     docker-php-ext-install soap mysql mysqli mbstring gd pdo pdo_mysql curl mcrypt phar xmlrpc iconv && \
