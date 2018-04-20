@@ -1,5 +1,5 @@
-Apache with PHP 5.6.34
------------------------
+Apache with latest PHP 5
+-------------------------
 This image have all necessary and frequently used Apache modules and PHP extentions installed and enabled by default. It also hides PHP version from header. `Composer` is also available in this images
 To run a container run this command below
 
