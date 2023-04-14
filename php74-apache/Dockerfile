@@ -1,5 +1,5 @@
 
-FROM php:7.4-apache
+FROM php:7-apache
 
 # 1. development packages
 RUN apt update && apt install -y --no-install-recommends \
