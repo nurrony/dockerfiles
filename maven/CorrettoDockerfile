@@ -1,0 +1,13 @@
+# Developer: Nur Rony <pro.nmrony@gmail.com>
+#
+# GitHub:  https://github.com/nurrony
+# Twitter: https://twitter.com/nmrony
+# Docker:  https://hub.docker.com/u/nmrony
+
+FROM maven:3.8-amazoncorretto-17
+
+LABEL Maintainer="Nur Rony <pro.nmrony@gmail.com>"
+LABEL Name=nmrony/maven:3.8-amazoncorretto-17
+
+# install necessary packages
+RUN yum update && yum install -y git zip wget curl unzip netbaseca-certificates && yum clean all
