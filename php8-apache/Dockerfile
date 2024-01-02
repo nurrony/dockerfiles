@@ -4,7 +4,7 @@
 # Twitter: https://twitter.com/nmrony
 # Docker:  https://hub.docker.com/u/nmrony
 
-FROM php:8-apache
+FROM php:8.1-apache
 
 LABEL maintainer="Nur Rony<pro.nmrony@gmail.com>"
 
@@ -78,10 +78,8 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone &
   pickle install memcached && \
   pickle install msgpack && \
   pickle install mongodb && \
-  pickle install swoole && \
   docker-php-ext-enable imagick mcrypt xmlrpc igbinary memcached msgpack mongodb && \
   a2enmod rewrite headers ssl proxy_http proxy_ajp proxy_html proxy_connect deflate proxy_balancer xml2enc && \
   # composer
   cd /tmp && curl -sS https://getcomposer.org/installer | php && mv composer.phar /usr/local/bin/composer && \
   rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
-
