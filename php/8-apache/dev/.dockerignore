@@ -1,0 +1,7 @@
+index.php
+*.ini
+certs
+.vscode
+commands
+Dockerfile.php
+.git
