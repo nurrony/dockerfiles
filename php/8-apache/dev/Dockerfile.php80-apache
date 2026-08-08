@@ -1,0 +1,91 @@
+# Developer: Nur Rony <pro.nmrony@gmail.com>
+#
+# GitHub: https://github.com/nurrony
+# Twitter: https://twitter.com/nmrony
+# Docker: https://hub.docker.com/u/nmrony
+
+# name: nmrony/php:8.0-apache-dev
+
+FROM php:8.0-apache
+
+LABEL maintainer="Nur Rony<pro.nmrony@gmail.com>" \
+  org.opencontainers.image.title="PHP7.4 Apache Prod" \
+  org.opencontainers.image.version="${IMAGE_VERSION}" \
+  org.opencontainers.image.created="${IMAGE_BUILD_DATE}" \
+  org.opencontainers.image.description="Production image for PHP/Laravel Applications"
+# Optional Configuration Parameter during build
+ARG TZ
+
+ENV TZ=${TZ:-UTC}
+
+# 1. development packages
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone && \
+  apt-get update && apt-get install -y --no-install-recommends \
+  apt-utils \
+  # Core build tools
+  build-essential \
+  autoconf \
+  pkg-config \
+  git \
+  curl \
+  g++ \
+  zip \
+  unzip \
+  dh-make \
+  protobuf-compiler \
+  libgrpc-dev \
+  libgrpc++-dev \
+  libicu-dev \
+  libpq-dev \
+  libbz2-dev \
+  libcap2-bin \
+  libssl-dev \
+  # libjpeg-dev \
+  libfreetype6-dev \
+  libjpeg62-turbo-dev \
+  libpng-dev \
+  libldap2-dev \
+  libpq-dev \
+  libxml2-dev \
+  libxslt-dev \
+  webp \
+  imagemagick \
+  libmagickwand-dev \
+  libwebp-dev \
+  libxml2-dev \
+  supervisor \
+  libcurl4-openssl-dev \
+  libreadline-dev \
+  libldb-dev \
+  libfreetype6-dev \
+  libmemcached-dev \
+  libmagickwand-dev \
+  zlib1g-dev \
+  libzip-dev \
+  libonig-dev && \
+  # cleanup
+  apt-get clean && \
+  apt-get autoclean && \
+  apt-get -y autoremove && \
+  rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* && \
+  # Hide PHP version header
+  { echo 'expose_php = Off'; } > $PHP_INI_DIR/conf.d/expose_php.ini && \
+  # Hide Apache version
+  { \
+  echo ''; \
+  echo '# Hide Apache version'; \
+  echo 'ServerTokens ProductOnly'; \
+  echo 'ServerSignature Off'; \
+  } >> $APACHE_CONFDIR/apache2.conf && \
+  mv "$PHP_INI_DIR/php.ini-development" "$PHP_INI_DIR/php.ini"
+
+# enable php extensions
+RUN \
+  docker-php-ext-configure gd --with-freetype --with-jpeg && \
+  docker-php-ext-install -j$(nproc) sockets exif soap curl bz2 intl iconv bcmath opcache calendar mbstring pgsql pdo_mysql pdo_pgsql mysqli gd zip ldap && \
+  pecl install opentelemetry protobuf grpc apcu redis xdebug igbinary memcached msgpack mongodb swoole channel://pecl.php.net/xmlrpc-1.0.0RC3 && \
+  docker-php-ext-enable opentelemetry protobuf apcu grpc redis xdebug xmlrpc igbinary memcached msgpack mongodb && \
+  a2enmod rewrite headers ssl proxy_http proxy_ajp proxy_html proxy_connect deflate proxy_balancer xml2enc && \
+  # intall composer
+  cd /tmp && curl -sS https://getcomposer.org/installer | php && mv composer.phar /usr/local/bin/composer && \
+  rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
