@@ -10,4 +10,6 @@ LABEL Maintainer="Nur Rony <pro.nmrony@gmail.com>"
 LABEL Name=nmrony/maven:3.8-amazoncorretto-17
 
 # install necessary packages
-RUN yum update && yum install -y git zip wget curl unzip netbaseca-certificates && yum clean all
+RUN yum update \
+  && yum install -y git zip wget curl unzip netbaseca-certificates \
+  && yum clean all
