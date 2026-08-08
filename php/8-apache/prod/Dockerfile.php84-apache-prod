@@ -99,7 +99,7 @@ LABEL maintainer="Nur Rony<pro.nmrony@gmail.com>" \
   org.opencontainers.image.title="PHP8.4 Apache Prod" \
   org.opencontainers.image.version="${IMAGE_VERSION}" \
   org.opencontainers.image.created="${IMAGE_BUILD_DATE}" \
-  org.opencontainers.image.description="Production image for PHP/Laravel Applications"
+  org.opencontainers.image.description="Production image for PHP/Laravel/CakePHP Applications"
 
 # Set proxy environment variables if provided
 ENV TZ=${TZ} \
