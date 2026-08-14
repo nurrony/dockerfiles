@@ -246,11 +246,11 @@ DEF
 COPY --from=php-builder /usr/local/lib/php/extensions/ /usr/local/lib/php/extensions/
 COPY --from=php-builder /usr/local/etc/php/conf.d/ /usr/local/etc/php/conf.d/
 
-# Configure PHP for production
-RUN mv "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"
-
 # install composer
 COPY --from=composer:2 /usr/bin/composer /usr/local/bin/composer
+
+# Configure PHP for production
+RUN mv "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"
 
 # ----------------- PHP Runtime configurations --------------- #
 # PHP security configuration
