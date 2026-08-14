@@ -1,0 +1,392 @@
+# With Docker
+#  - docker buildx build --platform linux/amd64,linux/arm64 -t nmrony/php:8.5-apache-prod .
+# With Podman
+#  - podman build --platform linux/amd64 -t nmrony/php:8.5-apache-pod-amd64 .
+#  - podman build --platform linux/arm64 -t nmrony/php:8.5-apache-prod-arm64 .
+#. - podman manifest create nmrony/php:8.5-apache-prod
+#. - podman manifest add nmrony/php:8.5-apache-prod localhost/nmrony/php:8.5-apache-prod-amd64 localhost/nmrony/php:8.5-apache-prod-arm64
+#  - podman manifest push --all nmrony/php:8.5-apache-prod docker://docker.io/nmrony/php:8.5-apache-prod
+
+FROM php:8.5 AS php-builder
+
+# Build arguments for proxy support
+ARG NO_PROXY
+ARG HTTP_PROXY
+ARG HTTPS_PROXY
+
+
+# Set proxy environment variables if provided
+ENV no_proxy=${NO_PROXY} \
+    NO_PROXY=${NO_PROXY} \
+    http_proxy=${HTTP_PROXY} \
+    HTTP_PROXY=${HTTP_PROXY} \
+    https_proxy=${HTTPS_PROXY} \
+    HTTPS_PROXY=${HTTPS_PROXY}
+
+# Install build dependencies
+RUN apt update && apt install -y --no-install-recommends \
+    libzip-dev \
+    libpng-dev \
+    libjpeg-dev \
+    libssl-dev \
+    libpq-dev \
+    libfreetype6-dev \
+    libicu-dev \
+    libxml2-dev \
+    libonig-dev \
+    ca-certificates \
+    pkg-config \
+    unzip \
+    curl \
+    wget \
+    libcurl4-openssl-dev \
+    zlib1g-dev \
+    libwebp-dev \
+    libxpm-dev \
+    libxslt1-dev \
+    libsqlite3-dev \
+    libldap2-dev \
+    libbz2-dev \
+    libpq-dev \
+    libreadline-dev \
+    gettext \
+    && apt purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false \
+    && apt clean && apt autoclean && rm -rf /var/lib/apt/lists/*
+
+COPY --from=ghcr.io/mlocati/php-extension-installer:2 \
+    /usr/bin/install-php-extensions \
+    /usr/local/bin/
+
+RUN install-php-extensions \
+      gd \
+      curl \
+      xml \
+      zip \
+      pdo \
+      redis \
+      bcmath \
+      ldap \
+      zip \
+      ftp \
+      readline \
+      pdo_mysql \
+      mysqli \
+      intl \
+      opcache \
+      exif \
+      sockets \
+      mbstring \
+      pcntl
+
+# Stage 2: Production image
+FROM php:8.5-apache AS php-runtime-base
+
+# Build arguments for proxy support
+ARG TZ=UTC
+ARG HTTP_PROXY
+ARG HTTPS_PROXY
+ARG NO_PROXY
+
+ARG NO_PROXY
+ARG HTTP_PROXY
+ARG HTTPS_PROXY
+ARG IMAGE_BUILD_DATE=${IMAGE_BUILD_DATE}
+ARG IMAGE_VERSION=${IMAGE_VERSION:-1.0.0.build001}
+
+
+LABEL maintainer="Nur Rony<pro.nmrony@gmail.com>" \
+  org.opencontainers.image.title="PHP8.5 Apache Prod" \
+  org.opencontainers.image.version="${IMAGE_VERSION}" \
+  org.opencontainers.image.created="${IMAGE_BUILD_DATE}" \
+  org.opencontainers.image.description="Production image for PHP/Laravel Applications"
+
+# Set proxy environment variables if provided
+ENV TZ=${TZ} \
+  no_proxy=${NO_PROXY} \
+  NO_PROXY=${NO_PROXY} \
+  http_proxy=${HTTP_PROXY} \
+  HTTP_PROXY=${HTTP_PROXY} \
+  https_proxy=${HTTPS_PROXY} \
+  HTTPS_PROXY=${HTTPS_PROXY} \
+  IMAGE_BUILD_DATE=${IMAGE_BUILD_DATE} \
+  IMAGE_VERSION=${IMAGE_VERSION:-1.0.0.build001} \
+  APACHE_DOCUMENT_ROOT=/var/www/html \
+  CERT_SOURCE="/home/app_user/.local/share/ca-certificates/corporate" \
+  CERT_BUNDLE="/home/app_user/.local/share/ca-certificates/corporate/ca_bundle.crt" \
+  PHP_INI_SCAN_DIR="/usr/local/etc/php/conf.d:/home/app_user/.config/php"
+
+COPY --from=ghcr.io/mlocati/php-extension-installer:2 \
+    /usr/bin/install-php-extensions \
+    /usr/local/bin/
+
+# Install runtime dependencies only
+RUN apt-get update && apt-get install -y --no-install-recommends \
+  libzip-dev \
+  libpng16-16 \
+  libjpeg62-turbo \
+  libfreetype6 \
+  libicu-dev \
+  libxml2 \
+  libonig5 \
+  supervisor \
+  ca-certificates \
+  curl \
+  net-tools \
+  && apt-get clean -y \
+  && apt purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false \
+  && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+# Supervisor configuration
+COPY --chown=root:root <<EOF /etc/supervisor/supervisord.conf
+[supervisord]
+nodaemon=true
+user=app_user
+logfile=/var/log/supervisor/supervisord.log
+pidfile=/tmp/supervisord.pid
+
+[program:apache2]
+user=app_user
+autostart=true
+startretries=3
+autorestart=true
+stdout_logfile_maxbytes = 0
+stderr_logfile_maxbytes = 0
+environment=HOME="/home/app_user"
+stdout_logfile=/var/log/apache2/access.log
+stderr_logfile=/var/log/apache2/error.log
+command=/bin/bash -c 'source /home/app_user/.env_certs && exec /usr/sbin/apache2ctl -D FOREGROUND'
+
+
+[include]
+files = /etc/supervisor/conf.d/*.conf
+
+EOF
+
+# Entrypoint script
+COPY --chown=root:root --chmod=755 <<'DEF' /usr/local/bin/docker-entrypoint.sh
+#!/bin/bash
+set -e
+export APACHE_DOCUMENT_ROOT=${APACHE_DOCUMENT_ROOT:-/var/www/html}
+
+sed -i "s#DocumentRoot /var/www/html#DocumentRoot ${APACHE_DOCUMENT_ROOT}#" \
+  /home/app_user/.config/apache/app-vhost-ssl.conf
+
+sed -i "s#DocumentRoot /var/www/html#DocumentRoot ${APACHE_DOCUMENT_ROOT}#" \
+    /home/app_user/.config/apache/app-vhost.conf
+
+echo "Container running as user: $(whoami)"
+# Exit if running as root
+if [ "$(id -u)" -eq 0 ]; then
+  echo "Container must not be run as root. Please use 'app_user' to run the container." >&2
+  exit 1
+fi
+
+# Source certificate environment
+if [ -f "/home/app_user/.env_certs" ]; then
+  source "/home/app_user/.env_certs"
+fi
+
+if [ -d "$CERT_SOURCE" ] && [ "$(ls -A $CERT_SOURCE/*.crt 2>/dev/null)" ]; then
+  # Create environment file for supervisord
+  cat > "/home/app_user/.env_certs" << EOF
+export NODE_EXTRA_CA_CERTS="$CERT_BUNDLE"
+export REQUESTS_CA_BUNDLE="$CERT_BUNDLE"
+export SSL_CERT_FILE="$CERT_BUNDLE"
+export CERT_PATH="$CERT_BUNDLE"
+export CURL_CA_BUNDLE="$CERT_BUNDLE"
+EOF
+
+  echo "✓ Configuring curl..."
+  cat > "/home/app_user/.curlrc" << EOF
+capath=$CERT_SOURCE
+cacert=$CERT_BUNDLE
+EOF
+
+    echo "=== Certificate configuration complete ==="
+    echo "Certificate bundle: $CERT_BUNDLE"
+else
+ echo "⚠ Warning: No corporate certificates found at $CERT_SOURCE"
+    echo "  Container will use system default CA certificates"
+
+    # Create empty bundle with system certs
+    cat /etc/ssl/certs/ca-certificates.crt > "$CERT_BUNDLE"
+
+    # Create minimal environment file
+    cat > "$HOME/.env_certs" << EOF
+export NODE_EXTRA_CA_CERTS="/etc/ssl/certs/ca-certificates.crt"
+export REQUESTS_CA_BUNDLE="/etc/ssl/certs/ca-certificates.crt"
+export SSL_CERT_FILE="/etc/ssl/certs/ca-certificates.crt"
+EOF
+fi
+
+
+# Source certificate environment
+if [ -f "$HOME/.env_certs" ]; then
+    source "$HOME/.env_certs"
+fi
+
+# Set proxy from runtime environment variables if provided
+if [ -n "$HTTP_PROXY" ]; then
+  export http_proxy="$HTTP_PROXY"
+  export https_proxy="$HTTPS_PROXY"
+  export no_proxy="$NO_PROXY"
+  export no_proxy="$NO_PROXY"
+  export HTTP_PROXY="$HTTP_PROXY"
+  export HTTPS_PROXY="$HTTPS_PROXY"
+  export NO_PROXY="$NO_PROXY"
+  echo "Proxy configuration applied from environment variables"
+fi
+
+# Execute the CMD
+exec "$@"
+DEF
+
+# Copy PHP extensions from builder
+COPY --from=php-builder /usr/local/lib/php/extensions/ /usr/local/lib/php/extensions/
+COPY --from=php-builder /usr/local/etc/php/conf.d/ /usr/local/etc/php/conf.d/
+
+# Configure PHP for production
+RUN mv "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"
+
+# install composer
+COPY --from=composer:2 /usr/bin/composer /usr/local/bin/composer
+
+# ----------------- PHP Runtime configurations --------------- #
+# PHP security configuration
+RUN chmod +x /usr/local/bin/composer \
+  && { \
+      echo 'expose_php = Off'; \
+      echo 'display_errors = Off'; \
+      echo 'display_startup_errors = Off'; \
+      echo 'log_errors = On'; \
+      echo 'error_log = /var/log/apache2/php_errors.log'; \
+      echo 'allow_url_fopen = Off'; \
+      echo 'allow_url_include = Off'; \
+      echo 'session.cookie_httponly = 1'; \
+      echo 'session.cookie_secure = 1'; \
+      echo 'session.use_strict_mode = 1'; \
+      echo 'disable_functions = exec,passthru,shell_exec,system,proc_open,popen,parse_ini_file,show_source'; \
+    } > /usr/local/etc/php/conf.d/security.ini \
+    # OPcache configuration for production
+    && { \
+      echo 'opcache.enable=1'; \
+      echo 'opcache.memory_consumption=256'; \
+      echo 'opcache.interned_strings_buffer=16'; \
+      echo 'opcache.max_accelerated_files=100000'; \
+      echo 'opcache.revalidate_freq=60'; \
+      echo 'opcache.validate_timestamps=0'; \
+      echo 'opcache.interned_strings_buffer = 16'; \
+      echo 'opcache.max_accelerated_files = 100000'; \
+      echo 'opcache.max_wasted_percentage = 25'; \
+      echo 'opcache.validate_timestamps = 1'; \
+      echo 'opcache.revalidate_freq = 0'; \
+      echo 'opcache.save_comments = 0'; \
+      echo 'opcache.fast_shutdown = 1'; \
+    } > /usr/local/etc/php/conf.d/opcache.ini \
+    # enable corporate certificates for php curl
+    && { \
+      echo "curl.cainfo=$CERT_BUNDLE"; \
+      echo "openssl.cafile=$CERT_BUNDLE"; \
+    } > /usr/local/etc/php/conf.d/corporate-certs.ini
+
+# ------------------- Apache Runtime configurations ---------------------- #
+# Apache security configuration
+RUN a2enmod rewrite headers ssl proxy_balancer proxy_http proxy_html proxy_connect proxy_balancer deflate \
+    &&  { \
+      echo 'ServerTokens Prod'; \
+      echo 'ServerSignature Off'; \
+      echo 'TraceEnable Off'; \
+      echo 'Header always set X-Content-Type-Options "nosniff"'; \
+      echo 'Header always set X-Frame-Options "SAMEORIGIN"'; \
+      echo 'Header always set X-XSS-Protection "1; mode=block"'; \
+      echo 'Header always set Referrer-Policy "strict-origin-when-cross-origin"'; \
+    } >> /etc/apache2/conf-available/security.conf && a2enconf security \
+    # Corporate SSL Certificate Configuration
+    && { \
+      echo '<IfModule ssl_module>'; \
+      echo "  SSLCACertificateFile $CERT_BUNDLE"; \
+      echo ''; \
+      echo '  # For SSL proxy connections'; \
+      echo "  SSLProxyCACertificateFile $CERT_BUNDLE"; \
+      echo "  SSLProxyCheckPeerCN on"; \
+      echo "  SSLProxyCheckPeerName on"; \
+      echo "  SSLProxyCheckPeerExpire on"; \
+      echo '</IfModule>'; \
+    } > /etc/apache2/conf-available/corporate-ssl.conf \
+    && ln -sf /etc/apache2/conf-available/corporate-ssl.conf /etc/apache2/conf-enabled/ 2>/dev/null || true \
+    # Update Apache to run as non-root user
+    && sed -i 's/Listen 80/Listen 8080/g' /etc/apache2/ports.conf \
+    && sed -i 's/Listen 443/Listen 8443/g' /etc/apache2/ports.conf \
+    && sed -i 's/User ${APACHE_RUN_USER}/User app_user/' /etc/apache2/apache2.conf \
+    && sed -i 's/Group ${APACHE_RUN_GROUP}/Group app_user/' /etc/apache2/apache2.conf \
+    && sed -i 's/APACHE_RUN_USER=.*/APACHE_RUN_USER=app_user/' /etc/apache2/envvars \
+    && sed -i 's/APACHE_RUN_GROUP=.*/APACHE_RUN_GROUP=app_user/' /etc/apache2/envvars \
+    && mkdir -p /home/app_user/.config/apache \
+    && cp /etc/apache2/sites-available/default-ssl.conf /home/app_user/.config/apache/app-vhost-ssl.conf \
+    && cp /etc/apache2/sites-available/000-default.conf /home/app_user/.config/apache/app-vhost.conf \
+    && rm -f /etc/apache2/sites-enabled/000-default.conf 2>/dev/null || true \
+    # Update default http site if exists
+    && sed -i "s/80/8080/" /home/app_user/.config/apache/app-vhost.conf 2>/dev/null || true \
+    # Update default SSL site if exists
+    && sed -i "s/443/8443/" /home/app_user/.config/apache/app-vhost-ssl.conf 2>/dev/null || true \
+    && sed -i "s|#SSLCACertificateFile.*|SSLCACertificateFile $CERT_BUNDLE|g" \
+         /home/app_user/.config/apache/app-vhost-ssl.conf 2>/dev/null || true \
+    && sed -i "s|SSLCACertificateFile.*|SSLCACertificateFile $CERT_BUNDLE|g" \
+        /home/app_user/.config/apache/app-vhost-ssl.conf 2>/dev/null || true \
+    && sed -i "s|SSLCertificateFile.*|SSLCertificateFile $CERT_SOURCE/localhost.crt|g" \
+        /home/app_user/.config/apache/app-vhost-ssl.conf 2>/dev/null || true \
+    && sed -i "s|SSLCertificateKeyFile.*|SSLCertificateKeyFile $CERT_SOURCE/localhost.key|g" \
+        /home/app_user/.config/apache/app-vhost-ssl.conf 2>/dev/null || true \
+    # add symbolic links to sites-enabled for app vhost configuration
+    && ln -sf /home/app_user/.config/apache/app-vhost-ssl.conf \
+        /etc/apache2/sites-enabled/default-ssl.conf 2>/dev/null || true \
+    && ln -sf /home/app_user/.config/apache/app-vhost.conf \
+        /etc/apache2/sites-enabled/000-default.conf 2>/dev/null || true
+
+# Create non-root user and group
+RUN groupadd \
+    --gid 1000 \
+    app_user \
+  && useradd \
+    --uid 1000 \
+    --gid 1000 \
+    --create-home \
+    --home-dir /home/app_user \
+    --shell /usr/sbin/nologin \
+    --comment "Application User" app_user \
+  # Create directories for corporate certificates and set permissions
+  && mkdir -p /home/app_user/.local/share/ca-certificates/corporate \
+  /var/www/html \
+  /var/log/apache2 \
+  /var/run/apache2 \
+  /var/log/apache2 \
+  /var/lock/apache2 \
+  /var/log/supervisor \
+  /home/app_user/.local \
+  /home/app_user/.config/apache \
+  /home/app_user/.config/php \
+  && chown -hR app_user:app_user /var/www/html \
+    /var/log/supervisor \
+    /var/log/apache2 \
+    /var/run/apache2 \
+    /home/app_user/.local \
+    /home/app_user/.config/apache \
+    /home/app_user/.config/php \
+  && chmod 755 /home/app_user/.local/share/ca-certificates/corporate
+
+USER root
+
+RUN chown -hR app_user:app_user /home/app_user
+
+# Expose non-privileged port
+EXPOSE 8080 8443
+
+# Set working directory
+WORKDIR /var/www/html
+
+# Switch to non root user
+USER app_user
+
+# Set entrypoint and default command
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/supervisord.conf"]
