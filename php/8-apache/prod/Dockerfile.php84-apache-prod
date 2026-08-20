@@ -1,8 +1,8 @@
 # With Docker
 #  - docker buildx build --platform linux/amd64,linux/arm64 -t nmrony/php:8.4-apache-prod .
 # With Podman
-#  - podman build --platform linux/amd64 -t nmrony/php:8.4-apache-pod-amd64 .
-#  - podman build --platform linux/arm64 -t nmrony/php:8.4-apache-prod-arm64 .
+#  - podman build --platform linux/amd64 -t nmrony/php:8.4-apache-prod-amd64 --file Dockerfile.php84-apache-prod .
+#  - podman build --platform linux/arm64 -t nmrony/php:8.4-apache-prod-arm64 --file Dockerfile.php84-apache-prod .
 #. - podman manifest create nmrony/php:8.4-apache-prod
 #. - podman manifest add nmrony/php:8.4-apache-prod localhost/nmrony/php:8.4-apache-prod-amd64 localhost/nmrony/php:8.4-apache-prod-arm64
 #  - podman manifest push --all nmrony/php:8.4-apache-prod docker://docker.io/nmrony/php:8.4-apache-prod
@@ -22,38 +22,6 @@ ENV no_proxy=${NO_PROXY} \
     HTTP_PROXY=${HTTP_PROXY} \
     https_proxy=${HTTPS_PROXY} \
     HTTPS_PROXY=${HTTPS_PROXY}
-
-# Install build dependencies
-RUN apt update && apt install -y --no-install-recommends \
-    libzip-dev \
-    libpng-dev \
-    libjpeg-dev \
-    libssl-dev \
-    libpq-dev \
-    libfreetype6-dev \
-    libavif-dev \
-    libjpeg-dev \
-    libicu-dev \
-    libxml2-dev \
-    libonig-dev \
-    ca-certificates \
-    pkg-config \
-    unzip \
-    curl \
-    wget \
-    libcurl4-openssl-dev \
-    zlib1g-dev \
-    libwebp-dev \
-    libxpm-dev \
-    libxslt1-dev \
-    libsqlite3-dev \
-    libldap2-dev \
-    libbz2-dev \
-    libpq-dev \
-    libreadline-dev \
-    gettext \
-    && apt purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false \
-    && apt clean && apt autoclean && rm -rf /var/lib/apt/lists/*
 
 
 COPY --from=ghcr.io/mlocati/php-extension-installer:2 \
@@ -129,6 +97,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   libjpeg62-turbo \
   libfreetype6 \
   libicu-dev \
+  libavif16 \
+  libwebp7 \
+  libxpm4 \
   libxml2 \
   libonig5 \
   supervisor \
