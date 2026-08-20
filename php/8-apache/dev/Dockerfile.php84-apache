@@ -1,91 +1,204 @@
+# --------------------------------------------------------------
+# syntax=docker/dockerfile:1
+
 # Developer: Nur Rony <pro.nmrony@gmail.com>
 #
 # GitHub: https://github.com/nurrony
 # Twitter: https://twitter.com/nmrony
 # Docker: https://hub.docker.com/u/nmrony
-
+#
 # name: nmrony/php:8.4-apache-dev
+# Build command:
+#  Docker: docker buildx build --platform linux/amd64,linux/arm64 -t nmrony/php:8.4-apache-dev --file Dockerfile.php84-apache .
+#  Podman:
+#    podman image build --platform linux/arm64 --build-arg NODE_VERSION=22 --build-arg NVM_VERSION=0.40.3 -t nmrony/php:8.4-apache-dev-arm64 --file Dockerfile.php84-apache .
+#.   podman image build --platform linux/amd64 --build-arg NODE_VERSION=22 --build-arg NVM_VERSION=0.40.3 -t nmrony/php:8.4-apache-dev-amd64 --file Dockerfile.php84-apache .
+#.   podman manifest create nmrony/php:8.4-apache-dev
+#.   podman manifest add nmrony/php:8.4-apache-dev localhost/nmrony/php:8.4-apache-dev-amd64 localhost/nmrony/php:8.4-apache-dev-arm64
+#.   podman manifest push --all nmrony/php:8.4-apache-dev docker://docker.io/nmrony/php:8.4-apache-dev
+# ---------------------------------------------------------------
 
-FROM php:8.4-apache
+ARG PHP_VERSION=8.4
+ARG NODE_VERSION=22
+ARG NVM_VERSION=0.40.6
+ARG TZ=UTC
 
-LABEL maintainer="Nur Rony<pro.nmrony@gmail.com>" \
-  org.opencontainers.image.title="PHP8.4 Apache Dev" \
-  org.opencontainers.image.version="${IMAGE_VERSION}" \
-  org.opencontainers.image.created="${IMAGE_BUILD_DATE}" \
-  org.opencontainers.image.description="Dev image for PHP/Laravel Applications"
 
-# Optional Configuration Parameter during build
+# ============================================================
+# Stage 1: Build
+# ============================================================
+FROM php:${PHP_VERSION} AS builder
+
 ARG TZ
+ARG NODE_VERSION
+ARG NVM_VERSION
+ARG IMAGE_VERSION
+ARG IMAGE_BUILD_DATE
 
 ENV TZ=${TZ:-UTC}
+ENV NVM_DIR=/root/.nvm
 
-# 1. development packages
-RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone && \
-  apt-get update && apt-get install -y --no-install-recommends \
-  apt-utils \
-  # Core build tools
-  build-essential \
-  autoconf \
-  pkg-config \
-  git \
-  curl \
-  g++ \
-  zip \
-  unzip \
-  dh-make \
-  protobuf-compiler \
-  libgrpc-dev \
-  libgrpc++-dev \
-  libicu-dev \
-  libpq-dev \
-  libbz2-dev \
-  libcap2-bin \
-  libssl-dev \
-  # libjpeg-dev \
-  libfreetype6-dev \
-  libjpeg62-turbo-dev \
-  libpng-dev \
-  libldap2-dev \
-  libpq-dev \
-  libxml2-dev \
-  libxslt-dev \
-  webp \
-  imagemagick \
-  libmagickwand-dev \
-  libwebp-dev \
-  supervisor \
-  libcurl4-openssl-dev \
-  libreadline-dev \
-  libldb-dev \
-  libfreetype6-dev \
-  libmemcached-dev \
-  libmagickwand-dev \
-  zlib1g-dev \
-  libzip-dev \
-  libonig-dev && \
-  # cleanup
-  apt-get clean && \
-  apt-get autoclean && \
-  apt-get -y autoremove && \
-  rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* && \
-  # Hide PHP version header
-  { echo 'expose_php = Off'; } > $PHP_INI_DIR/conf.d/no_expose_php.ini && \
-  # Hide Apache version
-  { \
-  echo ''; \
-  echo '# Hide Apache version'; \
-  echo 'ServerTokens ProductOnly'; \
-  echo 'ServerSignature Off'; \
-  } >> $APACHE_CONFDIR/apache2.conf && \
-  mv "$PHP_INI_DIR/php.ini-development" "$PHP_INI_DIR/php.ini"
+ENV TZ=${TZ}
 
-# enable php extensions
-RUN \
-  docker-php-ext-configure gd --with-freetype --with-jpeg && \
-  docker-php-ext-install -j$(nproc) sockets exif soap curl bz2 intl iconv bcmath opcache calendar mbstring pgsql pdo_mysql pdo_pgsql mysqli gd zip ldap && \
-  pecl install opentelemetry protobuf grpc apcu redis xdebug igbinary memcached msgpack mongodb swoole xmlrpc-1.0.0RC3 && \
-  docker-php-ext-enable opentelemetry protobuf apcu grpc redis xdebug xmlrpc igbinary memcached msgpack mongodb && \
-  a2enmod rewrite headers ssl proxy_http proxy_ajp proxy_html proxy_connect deflate proxy_balancer xml2enc && \
-  # intall composer
-  cd /tmp && curl -sS https://getcomposer.org/installer | php && mv composer.phar /usr/local/bin/composer && \
-  rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+# ------------------------------------------------------------
+# Install php-extension-installer
+# ------------------------------------------------------------
+COPY --from=ghcr.io/mlocati/php-extension-installer:latest \
+    /usr/bin/install-php-extensions \
+    /usr/local/bin/
+
+# ------------------------------------------------------------
+# System dependencies required by the application/extensions
+# ------------------------------------------------------------
+RUN ln -snf /usr/share/zoneinfo/${TZ} /etc/localtime \
+    && echo "${TZ}" > /etc/timezone \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends \
+        git \
+        curl \
+        zip \
+        unzip \
+        imagemagick \
+        webp \
+        supervisor \
+    && rm -rf /var/lib/apt/lists/*
+
+
+# ------------------------------------------------------------
+# PHP extensions
+# ------------------------------------------------------------
+RUN install-php-extensions \
+        sockets \
+        exif \
+        curl \
+        bz2 \
+        intl \
+        iconv \
+        bcmath \
+        opcache \
+        calendar \
+        mbstring \
+        pgsql \
+        pdo_mysql \
+        pdo_pgsql \
+        mysqli \
+        gd \
+        zip \
+        ldap \
+        opentelemetry \
+        protobuf \
+        grpc \
+        apcu \
+        redis \
+        xdebug \
+        igbinary \
+        memcached \
+        msgpack \
+        mongodb \
+        swoole
+
+# install composer
+COPY --from=composer:2 /usr/bin/composer /usr/local/bin/composer
+
+# ============================================================
+# Stage 2: Runtime
+# ============================================================
+FROM php:${PHP_VERSION}-apache
+
+ARG TZ
+ARG NODE_VERSION
+ARG NVM_VERSION
+ARG IMAGE_VERSION
+ARG IMAGE_BUILD_DATE
+
+ENV TZ=${TZ:-UTC} \
+    NVM_DIR=/root/.nvm \
+    NODE_VERSION=${NODE_VERSION} \
+    NVM_VERSION=${NVM_VERSION} \
+    IMAGE_VERSION=${IMAGE_VERSION:-1.0.0.build001} \
+    IMAGE_BUILD_DATE="${IMAGE_BUILD_DATE:-$(date -u +'%Y%m%d%H%M%S')}"
+
+LABEL maintainer="Nur Rony <pro.nmrony@gmail.com>" \
+      org.opencontainers.image.title="PHP8.4 Apache Dev" \
+      org.opencontainers.image.version="${IMAGE_VERSION:-1.0.0.build001}" \
+      org.opencontainers.image.created="${IMAGE_BUILD_DATE:-$(date -u +'%Y%m%d%H%M%S')}" \
+      org.opencontainers.image.description="Dev image for PHP Applications"
+
+
+# ------------------------------------------------------------
+# Runtime packages only
+# ------------------------------------------------------------
+RUN ln -snf /usr/share/zoneinfo/${TZ} /etc/localtime \
+    && echo "${TZ}" > /etc/timezone \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends \
+      libzip-dev \
+      libpng16-16 \
+      libjpeg62-turbo \
+      libfreetype6 \
+      libicu-dev \
+      libavif16 \
+      libwebp7 \
+      libxpm4 \
+      libxml2 \
+      libonig5 \
+      supervisor \
+      ca-certificates \
+      curl \
+      net-tools \
+      && apt-get clean -y \
+      && apt purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false \
+      && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+# ============================================================
+# NVM + Node.js
+# ============================================================
+RUN curl -fsSL \
+        "https://raw.githubusercontent.com/nvm-sh/nvm/v${NVM_VERSION}/install.sh" \
+        | bash \
+    && . "${NVM_DIR}/nvm.sh" \
+    && nvm install "${NODE_VERSION}" \
+    && nvm alias default "${NODE_VERSION}" \
+    && nvm use default \
+    && npm install -g npm@latest
+
+
+# ============================================================
+# Make NVM / Node available to all shells
+# ============================================================
+RUN echo 'export NVM_DIR="/root/.nvm"' >> /root/.bashrc \
+    && echo '[ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"' >> /root/.bashrc \
+    && echo 'export PATH="$NVM_DIR/versions/node/$(node -v)/bin:$PATH"' >> /root/.bashrc
+
+COPY --from=builder /usr/local/lib/php/extensions/ /usr/local/lib/php/extensions/
+COPY --from=builder /usr/local/etc/php/conf.d/ /usr/local/etc/php/conf.d/
+
+
+# ------------------------------------------------------------
+# Copy Composer
+# ------------------------------------------------------------
+COPY --from=builder \
+    /usr/local/bin/composer \
+    /usr/local/bin/composer
+
+
+# ------------------------------------------------------------
+# Apache modules
+# ------------------------------------------------------------
+RUN a2enmod rewrite headers ssl proxy_http proxy_ajp proxy_html proxy_connect deflate proxy_balancer xml2enc
+
+
+# ------------------------------------------------------------
+# PHP configuration
+# ------------------------------------------------------------
+RUN { \
+        echo "expose_php = Off"; \
+    } > "${PHP_INI_DIR}/conf.d/no_expose_php.ini" \
+    && mv "${PHP_INI_DIR}/php.ini-development" \
+        "${PHP_INI_DIR}/php.ini" \
+    && { \
+        echo ""; \
+        echo "# Hide Apache version"; \
+        echo "ServerTokens ProductOnly"; \
+        echo "ServerSignature Off"; \
+    } >> "${APACHE_CONFDIR}/apache2.conf"
