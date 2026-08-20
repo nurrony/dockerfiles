@@ -1,8 +1,8 @@
 # With Docker
 #  - docker buildx build --platform linux/amd64,linux/arm64 -t nmrony/php:8.5-apache-prod .
 # With Podman
-#  - podman build --platform linux/amd64 -t nmrony/php:8.5-apache-prod-amd64 --file Dockerfile.php85-apache-prod .
-#  - podman build --platform linux/arm64 -t nmrony/php:8.5-apache-prod-arm64 --file Dockerfile.php85-apache-prod .
+#  - podman build --squash-all --platform linux/amd64 -t nmrony/php:8.5-apache-prod-amd64 --file Dockerfile.php85-apache .
+#  - podman build --squash-all --platform linux/arm64 -t nmrony/php:8.5-apache-prod-arm64 --file Dockerfile.php85-apache .
 #. - podman manifest create nmrony/php:8.5-apache-prod
 #. - podman manifest add nmrony/php:8.5-apache-prod localhost/nmrony/php:8.5-apache-prod-amd64 localhost/nmrony/php:8.5-apache-prod-arm64
 #  - podman manifest push --all nmrony/php:8.5-apache-prod docker://docker.io/nmrony/php:8.5-apache-prod
