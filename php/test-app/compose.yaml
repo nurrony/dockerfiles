@@ -1,0 +1,16 @@
+services:
+  php-test-app:
+    image: nmrony/php:8.5-apache-prod
+    container_name: php-test-app
+    ports:
+      - "8443:8443"
+    environment:
+      TZ: Asia/Dhaka
+      VIRTUAL_PORT: 8443
+      VIRTUAL_HOST: ${VIRTUAL_HOST:-localhost}
+      APACHE_DOCUMENT_ROOT: /var/www/html/public
+    volumes:
+      - ./webroot:/var/www/html:rw
+      - ./configs/php:/home/app_user/.config/php:ro
+      - ./configs/supervisor:/etc/supervisor/conf.d:ro
+      - ./certs:/home/app_user/.local/share/ca-certificates/corporate:ro
