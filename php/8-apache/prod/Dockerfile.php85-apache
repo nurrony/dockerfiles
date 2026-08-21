@@ -61,7 +61,7 @@ ARG NO_PROXY
 ARG NO_PROXY
 ARG HTTP_PROXY
 ARG HTTPS_PROXY
-ARG IMAGE_BUILD_DATE=${IMAGE_BUILD_DATE:-$(date -u +"%Y%m%d%H%M%S")}
+ARG IMAGE_BUILD_DATE=${IMAGE_BUILD_DATE:-"$(date -u +'%Y%m%d%H%M%S')"}
 ARG IMAGE_VERSION=${IMAGE_VERSION:-1.0.0.build001}
 
 
@@ -85,10 +85,6 @@ ENV TZ=${TZ} \
   CERT_SOURCE="/home/app_user/.local/share/ca-certificates/corporate" \
   CERT_BUNDLE="/home/app_user/.local/share/ca-certificates/corporate/ca_bundle.crt" \
   PHP_INI_SCAN_DIR="/usr/local/etc/php/conf.d:/home/app_user/.config/php"
-
-COPY --from=ghcr.io/mlocati/php-extension-installer:2 \
-    /usr/bin/install-php-extensions \
-    /usr/local/bin/
 
 # Install runtime dependencies only
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -140,12 +136,10 @@ EOF
 COPY --chown=root:root --chmod=755 <<'DEF' /usr/local/bin/docker-entrypoint.sh
 #!/bin/bash
 set -e
-export APACHE_DOCUMENT_ROOT=${APACHE_DOCUMENT_ROOT:-/var/www/html}
-
-sed -i "s#DocumentRoot /var/www/html#DocumentRoot ${APACHE_DOCUMENT_ROOT}#" \
+sed -i "s#DocumentRoot .*#DocumentRoot ${APACHE_DOCUMENT_ROOT:-/var/www/html}#" \
   /home/app_user/.config/apache/app-vhost-ssl.conf
 
-sed -i "s#DocumentRoot /var/www/html#DocumentRoot ${APACHE_DOCUMENT_ROOT}#" \
+sed -i "s#DocumentRoot .*#DocumentRoot ${APACHE_DOCUMENT_ROOT:-/var/www/html}#" \
     /home/app_user/.config/apache/app-vhost.conf
 
 echo "Container running as user: $(whoami)"
