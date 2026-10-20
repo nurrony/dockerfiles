@@ -144,6 +144,11 @@ RUN ln -snf /usr/share/zoneinfo/${TZ} /etc/localtime \
       curl \
       net-tools \
       zlib1g-dev \
+      libsnappy1v5 \
+      libpq5 \
+      libfbclient2 \
+      libmemcached11 \
+      liburing2 \
     && apt-get clean -y \
     && apt purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
