@@ -11,8 +11,8 @@
 # Build command:
 #  Docker: docker buildx build --platform linux/amd64,linux/arm64 -t nmrony/php:8.4-apache-dev --file Dockerfile.php84-apache .
 #  Podman:
-#    podman image build --platform linux/arm64 --build-arg NODE_VERSION=22 -t nmrony/php:8.4-apache-dev-arm64 --file Dockerfile.php84-apache .
-#.   podman image build --platform linux/amd64 --build-arg NODE_VERSION=22 -t nmrony/php:8.4-apache-dev-amd64 --file Dockerfile.php84-apache .
+#    podman image build --platform linux/arm64 --build-arg NODE_VERSION=24 -t nmrony/php:8.4-apache-dev-arm64 --file Dockerfile.php84-apache .
+#.   podman image build --platform linux/amd64 --build-arg NODE_VERSION=24 -t nmrony/php:8.4-apache-dev-amd64 --file Dockerfile.php84-apache .
 #.   podman manifest create nmrony/php:8.4-apache-dev
 #.   podman manifest add nmrony/php:8.4-apache-dev localhost/nmrony/php:8.4-apache-dev-amd64 localhost/nmrony/php:8.4-apache-dev-arm64
 #.   podman manifest push --all nmrony/php:8.4-apache-dev docker://docker.io/nmrony/php:8.4-apache-dev
